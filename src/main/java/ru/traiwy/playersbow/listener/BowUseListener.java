@@ -1,74 +1,120 @@
 package ru.traiwy.playersbow.listener;
 
-import lombok.AllArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@AllArgsConstructor
 public class BowUseListener implements Listener {
+
     private final JavaPlugin plugin;
 
-    private final Map<UUID, BukkitTask> bowTasks = new HashMap<>();
+    private final Map<UUID, BukkitTask> pullTasks = new HashMap<>();
+    private final Map<UUID, Player> targets = new HashMap<>();
 
-    @EventHandler
-    public void onBowUse(PlayerInteractEvent event){
-        System.out.println(1);
-        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-
-        final var player = event.getPlayer();
-        final ItemStack item = event.getItem();
-        if(item == null || item.getType() != Material.BOW) return;
-        System.out.println(2);
-
-        if (bowTasks.containsKey(player.getUniqueId())) return;
-
-        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            System.out.println(3);
-            if(!player.isOnline() ||  player.getInventory().getItemInMainHand().getType() != Material.BOW){
-                System.out.println(4);
-                BukkitTask taskToCancel = bowTasks.get(player.getUniqueId());
-                if(taskToCancel != null){
-                    taskToCancel.cancel();
-                }
-                bowTasks.remove(player.getUniqueId());
-                return;
-            };
-            final var target = getTargetPlayer(player, 10);
-            if(target != null){
-                player.sendMessage("You bow in  " + target.getName());
-            }else{
-                System.out.println("Player is null");
-            }
-        }, 0L, 20L);
-        bowTasks.put(player.getUniqueId(), task);
+    public BowUseListener(JavaPlugin plugin) {
+        this.plugin = plugin;
     }
 
-    private Player getTargetPlayer(Player player, double distance){
-        var result = player.getWorld().rayTraceEntities(
-                player.getEyeLocation(),
-                player.getEyeLocation().getDirection(),
-                distance,
-                entity -> entity instanceof Player && entity != player
-        );
+    @EventHandler
+    public void onBowPull(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR &&
+                event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
-        if(result == null){
-            System.out.println("Player is null");
-            return null;
-        }else {
-            System.out.println(result);
+        Player player = event.getPlayer();
+        ItemStack item = event.getItem();
+
+        if (item == null || item.getType() != Material.BOW) return;
+        if (pullTasks.containsKey(player.getUniqueId())) return;
+
+        Player target = getTargetPlayer(player, 15);
+        if (target == null) return;
+
+        targets.put(player.getUniqueId(), target);
+
+        target.setGravity(false);
+        target.setCollidable(false);
+
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+
+            if (!player.isOnline()
+                    || !player.isHandRaised()
+                    || player.getInventory().getItemInMainHand().getType() != Material.BOW) {
+
+                stopPull(player);
+                return;
+            }
+
+            Player t = targets.get(player.getUniqueId());
+            if (t == null || !t.isOnline()) return;
+
+            Location eye = player.getEyeLocation();
+            Vector dir = eye.getDirection().normalize();
+
+            Location fixed = eye.add(dir.multiply(2.0)).add(0, -0.6, 0);
+            fixed.setYaw(t.getLocation().getYaw());
+            fixed.setPitch(t.getLocation().getPitch());
+
+            t.teleport(fixed);
+
+        }, 0L, 1L);
+
+        pullTasks.put(player.getUniqueId(), task);
+    }
+
+    @EventHandler
+    public void onBowShoot(EntityShootBowEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+
+        Player target = targets.get(player.getUniqueId());
+        if (target == null) return;
+
+        Vector arrowVelocity = event.getProjectile().getVelocity();
+        target.setVelocity(arrowVelocity);
+
+        stopPull(player);
+    }
+
+    private void stopPull(Player player) {
+        BukkitTask task = pullTasks.remove(player.getUniqueId());
+        if (task != null) task.cancel();
+
+        Player target = targets.remove(player.getUniqueId());
+        if (target != null) {
+            target.setGravity(true);
+            target.setCollidable(true);
         }
-        return (Player) result.getHitEntity();
+    }
+
+    private Player getTargetPlayer(Player player, double distance) {
+        Location eye = player.getEyeLocation();
+        Vector dir = eye.getDirection().normalize();
+
+        for (var e : player.getNearbyEntities(distance, distance, distance)) {
+            if (!(e instanceof Player target) || target == player) continue;
+
+            Vector toTarget = target.getLocation()
+                    .add(0, 1, 0)
+                    .toVector()
+                    .subtract(eye.toVector())
+                    .normalize();
+
+            double angle = Math.toDegrees(Math.acos(dir.dot(toTarget)));
+            if (angle < 10) return target;
+        }
+        return null;
     }
 }
