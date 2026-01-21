@@ -2,3 +2,5 @@ name: PlayersBow
 version: '1.0'
 main: ru.traiwy.playersbow.PlayersBow
 api-version: '1.16'
+commands:
+  custombow: {}
