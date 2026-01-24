@@ -12,14 +12,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import ru.traiwy.playersbow.bow.key.CustomBowFactory;
 import ru.traiwy.playersbow.bow.manager.BowPullManager;
+import ru.traiwy.playersbow.bow.manager.NoFallManager;
 
 public class BowUseListener implements Listener {
 
     private final BowPullManager manager;
     private final CustomBowFactory bowFactory;
 
-    public BowUseListener(JavaPlugin plugin, CustomBowFactory bowFactory, NoFallDamageListener noFallDamageListener) {
-        this.manager = new BowPullManager(plugin, noFallDamageListener);
+    public BowUseListener(JavaPlugin plugin, CustomBowFactory bowFactory, NoFallManager noFallManager) {
+        this.manager = new BowPullManager(plugin, noFallManager);
         this.bowFactory = bowFactory;
     }
 

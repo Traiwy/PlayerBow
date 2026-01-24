@@ -5,22 +5,21 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
-import ru.traiwy.playersbow.bow.listener.NoFallDamageListener;
 import ru.traiwy.playersbow.bow.manager.session.BowPullSession;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class BowPullManager {
+public class BowPullManager{
 
     private final JavaPlugin plugin;
-    private final NoFallDamageListener  noFallPlayers;
+    private final NoFallManager noFallManager;
     private final Map<UUID, BowPullSession> sessions = new HashMap<>();
 
-    public BowPullManager(JavaPlugin plugin, NoFallDamageListener noFallPlayers) {
+    public BowPullManager(JavaPlugin plugin, NoFallManager noFallManager) {
         this.plugin = plugin;
-        this.noFallPlayers = noFallPlayers;
+        this.noFallManager = noFallManager;
     }
 
     public boolean hasSession(Player player) {
@@ -28,7 +27,7 @@ public class BowPullManager {
     }
 
     public void start(Player shooter, Player target) {
-        noFallPlayers.addNoFall(target);
+        noFallManager.add(target);
 
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             BowPullSession session = sessions.get(shooter.getUniqueId());
@@ -48,11 +47,22 @@ public class BowPullManager {
         if (session != null) {
             session.release(velocity);
 
-
             Player target = session.getTarget();
+
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                noFallPlayers.removeNoFall(target);
-            }, 100L);
+                if (target.isOnline() && noFallManager.has(target)) {
+                    if (target.isOnGround()) {
+                        System.out.println("[BowPull] Player landed safely, removing nofall");
+                        noFallManager.remove(target);
+                    } else {
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            if (noFallManager.has(target)) {
+                                noFallManager.remove(target);
+                            }
+                        }, 40L);
+                    }
+                }
+            }, 60L);
         }
     }
 
@@ -60,7 +70,6 @@ public class BowPullManager {
         BowPullSession session = sessions.remove(shooter.getUniqueId());
         if (session != null) {
             session.stop();
-            noFallPlayers.removeNoFall(session.getTarget());
         }
     }
 
@@ -69,4 +78,5 @@ public class BowPullManager {
                 && player.isHandRaised()
                 && player.getInventory().getItemInMainHand().getType().name().endsWith("BOW");
     }
+
 }
