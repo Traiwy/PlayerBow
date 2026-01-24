@@ -1,13 +1,19 @@
 package ru.traiwy.playersbow.bow.listener;
 
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import ru.traiwy.playersbow.bow.key.CustomBowFactory;
@@ -17,9 +23,11 @@ import ru.traiwy.playersbow.bow.manager.NoFallManager;
 public class BowUseListener implements Listener {
 
     private final BowPullManager manager;
+    private final JavaPlugin plugin;
     private final CustomBowFactory bowFactory;
 
     public BowUseListener(JavaPlugin plugin, CustomBowFactory bowFactory, NoFallManager noFallManager) {
+        this.plugin = plugin;
         this.manager = new BowPullManager(plugin, noFallManager);
         this.bowFactory = bowFactory;
     }
@@ -44,12 +52,16 @@ public class BowUseListener implements Listener {
     @EventHandler
     public void onShoot(EntityShootBowEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
-
-        ItemStack bow = event.getBow();
-        if (!bowFactory.isCustomBow(bow)) return;
+        if (!bowFactory.isCustomBow(event.getBow())) return;
 
         manager.release(player, event.getProjectile().getVelocity());
+
+        if (event.getProjectile() instanceof Projectile projectile) {
+            NamespacedKey key = new NamespacedKey(plugin, "custom_arrow");
+            projectile.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte)1);
+        }
     }
+
 
     private Player findTarget(Player player, double distance) {
         Location eye = player.getEyeLocation();
@@ -68,4 +80,6 @@ public class BowUseListener implements Listener {
                 .findFirst()
                 .orElse(null);
     }
+
+
 }
