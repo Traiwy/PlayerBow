@@ -31,10 +31,10 @@ public final class PlayersBow extends JavaPlugin {
         FallLandingEffect fallLandingEffect = new FallLandingEffect();
 
         noFallManager = new NoFallManager(this);
-        bowPullManager = new BowPullManager(this, noFallManager, customBowFactory);
+        bowPullManager = new BowPullManager(this, noFallManager, customBowFactory, targetFinder);
 
         getServer().getPluginManager().registerEvents(new FallDamageListener(noFallManager, fallLandingEffect), this);
-        getServer().getPluginManager().registerEvents(new BowUseListener(bowPullManager, customBowFactory, targetFinder, config), this);
+        getServer().getPluginManager().registerEvents(new BowUseListener(bowPullManager, customBowFactory, config), this);
         getServer().getPluginManager().registerEvents(new BowProjectileListener(customBowFactory), this);
         getServer().getPluginManager().registerEvents(new PlayerStateListener(bowPullManager, noFallManager), this);
 

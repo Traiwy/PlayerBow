@@ -10,7 +10,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import ru.traiwy.playersbow.bow.key.CustomBowFactory;
 import ru.traiwy.playersbow.bow.manager.BowPullManager;
-import ru.traiwy.playersbow.bow.target.TargetFinder;
 import ru.traiwy.playersbow.config.BowConfig;
 
 public class BowUseListener implements Listener {
@@ -19,14 +18,11 @@ public class BowUseListener implements Listener {
 
     private final BowPullManager manager;
     private final CustomBowFactory bowFactory;
-    private final TargetFinder targetFinder;
     private final BowConfig config;
 
-    public BowUseListener(BowPullManager manager, CustomBowFactory bowFactory,
-                          TargetFinder targetFinder, BowConfig config) {
+    public BowUseListener(BowPullManager manager, CustomBowFactory bowFactory, BowConfig config) {
         this.manager = manager;
         this.bowFactory = bowFactory;
-        this.targetFinder = targetFinder;
         this.config = config;
     }
 
@@ -43,12 +39,8 @@ public class BowUseListener implements Listener {
             config.getMessages().send(player, "no-permission");
             return;
         }
-        if (manager.hasSession(player)) return;
 
-        Player target = targetFinder.find(player);
-        if (target == null || manager.isCaptured(target)) return;
-
-        manager.start(player, target);
+        manager.beginAim(player);
     }
 
     @EventHandler(ignoreCancelled = true)

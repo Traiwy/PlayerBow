@@ -4,7 +4,6 @@ import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 @Getter
@@ -16,7 +15,6 @@ public class BowPullSession {
 
     private final Player shooter;
     private final Player target;
-    private BukkitTask task;
     private int ticks;
 
     public BowPullSession(Player shooter, Player target) {
@@ -27,10 +25,6 @@ public class BowPullSession {
         if (target.isInsideVehicle()) target.leaveVehicle();
         target.setGravity(false);
         target.setCollidable(false);
-    }
-
-    public void bind(BukkitTask task) {
-        this.task = task;
     }
 
     public void tick() {
@@ -46,7 +40,6 @@ public class BowPullSession {
     }
 
     public void stop() {
-        if (task != null) task.cancel();
         target.setGravity(true);
         target.setCollidable(true);
     }
