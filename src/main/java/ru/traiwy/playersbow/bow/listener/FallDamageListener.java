@@ -19,14 +19,14 @@ public class FallDamageListener implements Listener {
         this.landingEffect = landingEffect;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onFall(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         if (event.getCause() != EntityDamageEvent.DamageCause.FALL) return;
         if (!noFallManager.has(player)) return;
 
         event.setCancelled(true);
-        noFallManager.remove(player);
+        noFallManager.clear(player);
 
         landingEffect.play(player);
     }

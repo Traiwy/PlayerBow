@@ -1,0 +1,9 @@
+bow:
+  name: "&d&lPlayer Bow"
+  lore: []
+
+messages:
+  no-permission: "&cУ вас нет доступа к этому луку"
+  players-only: "&cКоманда доступна только игрокам"
+  inventory-full: "&cВ инвентаре нет свободного места"
+  bow-received: "&aЛук выдан"
